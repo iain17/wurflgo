@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/srinathgs/wurflgo"
+	"github.com/iain17/wurflgo"
 	"fmt"
 )
 
