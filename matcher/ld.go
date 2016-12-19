@@ -1,7 +1,7 @@
 package matcher
 
 import (
-	"github.com/srinathgs/wurflgo/levenshtein"
+	"github.com/iain17/wurflgo/levenshtein"
 	)
 
 type LDMatcher struct{

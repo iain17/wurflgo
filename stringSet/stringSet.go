@@ -1,18 +1,10 @@
 package stringSet
 
-import (
-	"encoding/gob"
-)
-
 type Set interface{
 	Add(i string) bool
 	Get(i string) bool
 	Remove(i string)
 	Count() int
-}
-
-func init() {
-	gob.Register(set{})
 }
 
 type set struct {

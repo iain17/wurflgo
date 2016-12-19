@@ -2,7 +2,7 @@ What it is
 ====
 
   A library written in Go for matching user agent strings against the devices in WURFL Database. 
-  Documentation on [godoc.org](http://godoc.org/github.com/srinathgs/wurflgo)
+  Documentation on [godoc.org](http://godoc.org/github.com/iain17/wurflgo)
 
 Installation
 ====
@@ -11,11 +11,11 @@ Assuming that you have set up `go`,
 
 Just run
 
-    go get github.com/srinathgs/wurflgo
+    go get github.com/iain17/wurflgo
 
 Then create the binary, 
 
-    cd $GOPATH/src/github.com/srinathgs/wurflgo/parser/
+    cd $GOPATH/src/github.com/iain17/wurflgo/parser/
     go build parser.go
     
 Download `wurfl.xml` from [WURFL Download Page](http://wurfl.sourceforge.net/wurfl_download.php)
@@ -32,7 +32,7 @@ Keep the `wurfl.go` file in your project directory and wherever you want to look
     
     ...
     ...
-    import "github.com/srinathgs/wurlfgo"
+    import "github.com/iain17/wurlfgo"
     ...
     ...
     

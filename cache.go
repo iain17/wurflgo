@@ -3,7 +3,7 @@ package wurflgo
 import (
 	"os"
 	"encoding/gob"
-	"fmt"
+	"bufio"
 )
 
 func Read(gobFile string) *Repository {
@@ -22,13 +22,15 @@ func Read(gobFile string) *Repository {
 	// Decode -- We need to pass a pointer otherwise accounts2 isn't modified
 	decoder.Decode(&devices)
 
-	if devices == nil {
+	if devices == nil || len(devices) <= 10 {
 		return nil
 	}
-	fmt.Println(devices)
-	return &Repository {
+
+	repo := &Repository {
 		devices: devices,
 	}
+	repo.Initialize()
+	return repo
 }
 
 func (r *Repository) Save(gobFile string) error {
@@ -38,7 +40,7 @@ func (r *Repository) Save(gobFile string) error {
 		return err
 	}
 	defer encodeFile.Close()
-	encoder := gob.NewEncoder(encodeFile)
+	encoder := gob.NewEncoder(bufio.NewWriter(encodeFile))
 
 	// Write to the file
 	if err := encoder.Encode(r.devices); err != nil {

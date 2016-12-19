@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 	"sort"
-	"github.com/srinathgs/wurflgo/matcher"
+	"github.com/iain17/wurflgo/matcher"
 )
 
 type Util struct{

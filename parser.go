@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"os"
 	"strings"
-	"github.com/srinathgs/wurflgo/stringSet"
+	"github.com/iain17/wurflgo/stringSet"
 )
 
 type Capability struct{
@@ -91,6 +91,7 @@ func (wp *WurflProcessor) Process(){
 		}
 	}
 	wp.ProcessDeferredDevices()
+	wp.Out.Initialize()
 }
 
 
@@ -104,7 +105,10 @@ func (wp *WurflProcessor) save(dev *XMLDevice) {
 			}
 		}
 	}
-	wp.Out.register(dev.Id, dev.UserAgent, dev.ActualDeviceRoot, capabilities, dev.Parent)
+	err := wp.Out.register(dev.Id, dev.UserAgent, dev.ActualDeviceRoot, capabilities, dev.Parent)
+	if err != nil {
+		panic(err)
+	}
 	wp.ProcessedDevices.Add(dev.Id)
 }
 

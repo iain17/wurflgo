@@ -2,18 +2,9 @@ package wurflgo
 
 import (
 	"errors"
-	"github.com/srinathgs/wurflgo/stringSet"
 )
 
 var chain = NewChain()
-
-func GetChain() *Chain {
-	return chain
-}
-
-func GetUtil() *Util {
-	return util
-}
 
 type DeviceProperties struct {
 	BrandName string `json:"brand_name"`
@@ -31,14 +22,15 @@ type DeviceProperties struct {
 type Device struct {
 	Id               string
 	UA               string
-	Parent           *Device
-	Children         stringSet.Set
+	Parent		 string
+	Children         map[string]bool
 	ActualDeviceRoot bool
 	Capabilities     map[string]string
 	Properties	 *DeviceProperties
 }
 
 type Repository struct {
+	initialized bool
 	devices map[string]*Device
 }
 
@@ -56,54 +48,71 @@ func (r *Repository) count() int {
 	return len(r.devices)
 }
 
+func (r *Repository) Match(ua string) *Device {
+	m := chain.Match(ua)
+	return r.find(m)
+}
+
+func (r *Repository) Initialize() {
+	if r.initialized {
+		return
+	}
+	for _, dev := range r.devices {
+		chain.Filter(dev.UA, dev.Id)
+	}
+}
+
 func (r *Repository) register(id, ua string, actualDeviceRoot bool, capabilities map[string]string, parent string) error {
 	dev := new(Device)
 	dev.Id = id
 	dev.UA = ua
-	dev.Children = stringSet.New()
-	dev.Capabilities = make(map[string]string)
+	dev.Children = map[string]bool{}
+	dev.Capabilities = capabilities
+	dev.Parent = parent
+	parentDevice, found := r.devices[parent]
 	if parent == "" {
 		dev.Capabilities = capabilities
 	} else {
-		parentDevice, found := r.devices[parent]
 		if found == true {
-			for k := range parentDevice.Capabilities {
-				dev.Capabilities[k] = parentDevice.Capabilities[k]
-			}
-			for k := range capabilities {
-				dev.Capabilities[k] = capabilities[k]
-			}
-			dev.Parent = parentDevice
-			parentDevice.Children.Add(dev.Id)
+			parentDevice.Children[dev.Id] = true
 		} else {
-			//fmt.Println(dev.Id)
 			return errors.New("Unregistered Parent Device")
 		}
 	}
-	dev.parseDeviceProperties()
+	//Save it
 	r.devices[dev.Id] = dev
-	chain.Filter(dev.UA, dev.Id)
+
 	return nil
 }
 
-func (r *Device) parseDeviceProperties() {
-	r.Properties = &DeviceProperties{
-		BrandName: r.Capabilities["brand_name"],
-		ModelName: r.Capabilities["model_name"],
-		MarketingName: r.Capabilities["marketing_name"],
-		PreferredMarkup: r.Capabilities["preferred_markup"],
-		ResolutionWidth: r.Capabilities["resolution_width"],
-		ResolutionHeight: r.Capabilities["resolution_height"],
-		DeviceOs: r.Capabilities["device_os"],
-		DeviceOsVersion: r.Capabilities["device_os_version"],
-		BrowserName: r.Capabilities["mobile_browser"],
-		BrowserVersion: r.Capabilities["mobile_browser_version"],
+func (dev *Device) getCapabilities(r *Repository) map[string]string {
+	parentDevice, found := r.devices[dev.Parent]
+	capabilities := map[string]string{}
+	if found == true {
+		for k := range parentDevice.Capabilities {
+			capabilities[k] = parentDevice.Capabilities[k]
+		}
+		for k := range dev.Capabilities {
+			capabilities[k] = dev.Capabilities[k]
+		}
 	}
+	return capabilities
 }
 
-func (r *Repository) Match(ua string) *Device {
-	m := chain.Match(ua)
-	return r.find(m)
+func (dev *Device) GetProperties(r *Repository) *DeviceProperties {
+	capabilities := dev.getCapabilities(r)
+	return &DeviceProperties{
+		BrandName: capabilities["brand_name"],
+		ModelName: capabilities["model_name"],
+		MarketingName: capabilities["marketing_name"],
+		PreferredMarkup: capabilities["preferred_markup"],
+		ResolutionWidth: capabilities["resolution_width"],
+		ResolutionHeight: capabilities["resolution_height"],
+		DeviceOs: capabilities["device_os"],
+		DeviceOsVersion: capabilities["device_os_version"],
+		BrowserName: capabilities["mobile_browser"],
+		BrowserVersion: capabilities["mobile_browser_version"],
+	}
 }
 
 func init() {
