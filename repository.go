@@ -22,7 +22,7 @@ type DeviceProperties struct {
 type Device struct {
 	Id               string
 	UA               string
-	Parent		 string
+	Parent           string
 	Children         map[string]bool
 	ActualDeviceRoot bool
 	Capabilities     map[string]string
@@ -66,52 +66,58 @@ func (r *Repository) register(id, ua string, actualDeviceRoot bool, capabilities
 	dev := new(Device)
 	dev.Id = id
 	dev.UA = ua
-	dev.Children = map[string]bool{}
-	dev.Capabilities = capabilities
+	dev.Children = make(map[string]bool)
+	dev.Capabilities = make(map[string]string)
 	dev.Parent = parent
-	parentDevice, found := r.devices[parent]
-	if parent == "" {
-		dev.Capabilities = capabilities
+	r.setCapabilities(dev, capabilities)
+	if parentDevice, found := r.devices[dev.Parent]; found {
+		parentDevice.Children[dev.Id] = true
 	} else {
-		if found == true {
-			parentDevice.Children[dev.Id] = true
-		} else {
-			return errors.New("Unregistered Parent Device")
+		if dev.Parent != "" {
+			return errors.New("Unregistered Parent Device:"+dev.Id)
 		}
 	}
-	//Save it
 	r.devices[dev.Id] = dev
-
 	return nil
 }
 
-func (dev *Device) getCapabilities(r *Repository) map[string]string {
-	parentDevice, found := r.devices[dev.Parent]
-	capabilities := map[string]string{}
-	if found == true {
-		for k := range parentDevice.Capabilities {
-			capabilities[k] = parentDevice.Capabilities[k]
-		}
-		for k := range dev.Capabilities {
-			capabilities[k] = dev.Capabilities[k]
+func (r *Repository) setCapabilities(device *Device, childCapabilities map[string]string) {
+	if device.Parent == "" {
+		device.Capabilities = childCapabilities
+	} else {
+		parentDevice, found := r.devices[device.Parent]
+		if found == true {
+			for k := range parentDevice.Capabilities {
+				device.Capabilities[k] = parentDevice.Capabilities[k]
+			}
+			for k := range childCapabilities {
+				device.Capabilities[k] = childCapabilities[k]
+			}
 		}
 	}
-	return capabilities
 }
 
-func (dev *Device) GetProperties(r *Repository) *DeviceProperties {
-	capabilities := dev.getCapabilities(r)
+//We're only interested in the device properties. So clear the Capabilities array afterwards.
+//So that we don't save all that useless crap in our cache file
+func (r *Repository) Cleanup() {
+	for id, dev := range r.devices {
+		r.devices[id].Properties = dev.getProperties()
+		r.devices[id].Capabilities = nil
+	}
+}
+
+func (dev *Device) getProperties() *DeviceProperties {
 	return &DeviceProperties{
-		BrandName: capabilities["brand_name"],
-		ModelName: capabilities["model_name"],
-		MarketingName: capabilities["marketing_name"],
-		PreferredMarkup: capabilities["preferred_markup"],
-		ResolutionWidth: capabilities["resolution_width"],
-		ResolutionHeight: capabilities["resolution_height"],
-		DeviceOs: capabilities["device_os"],
-		DeviceOsVersion: capabilities["device_os_version"],
-		BrowserName: capabilities["mobile_browser"],
-		BrowserVersion: capabilities["mobile_browser_version"],
+		BrandName: dev.Capabilities["brand_name"],
+		ModelName: dev.Capabilities["model_name"],
+		MarketingName: dev.Capabilities["marketing_name"],
+		PreferredMarkup: dev.Capabilities["preferred_markup"],
+		ResolutionWidth: dev.Capabilities["resolution_width"],
+		ResolutionHeight: dev.Capabilities["resolution_height"],
+		DeviceOs: dev.Capabilities["device_os"],
+		DeviceOsVersion: dev.Capabilities["device_os_version"],
+		BrowserName: dev.Capabilities["mobile_browser"],
+		BrowserVersion: dev.Capabilities["mobile_browser_version"],
 	}
 }
 

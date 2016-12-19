@@ -91,6 +91,7 @@ func (wp *WurflProcessor) Process(){
 		}
 	}
 	wp.ProcessDeferredDevices()
+	wp.Out.Cleanup()
 	wp.Out.Initialize()
 }
 
