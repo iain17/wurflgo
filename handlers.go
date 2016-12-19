@@ -26,9 +26,6 @@ type Handlers interface{
 	GetOrderedUAS()[]string
 }
 
-
-
-
 type Chain struct{
 	Handlers []Handlers
 }

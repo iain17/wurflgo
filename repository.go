@@ -1,8 +1,9 @@
 package wurflgo
 
-import "errors"
-
-//import "fmt"
+import (
+	"errors"
+	"github.com/srinathgs/wurflgo/stringSet"
+)
 
 var chain = NewChain()
 
@@ -14,36 +15,27 @@ func GetUtil() *Util {
 	return util
 }
 
-type StringSet struct {
-	Set map[string]bool
-}
-
-func NewStringSet() *StringSet {
-	return &StringSet{make(map[string]bool)}
-}
-
-func (set *StringSet) Add(i string) bool {
-	_, found := set.Set[i]
-	set.Set[i] = true
-	return !found //False if it existed already
-}
-
-func (set *StringSet) Get(i string) bool {
-	_, found := set.Set[i]
-	return found //true if it existed already
-}
-
-func (set *StringSet) Remove(i string) {
-	delete(set.Set, i)
+type DeviceProperties struct {
+	BrandName string `json:"brand_name"`
+	ModelName string `json:"model_name"`
+	MarketingName string `json:"marketing_name"`
+	PreferredMarkup string `json:"preferred_markup"`
+	ResolutionWidth string `json:"resolution_width"`
+	ResolutionHeight string `json:"resolution_height"`
+	DeviceOs string `json:"device_os"`
+	DeviceOsVersion string `json:"device_os_version"`
+	BrowserName string `json:"mobile_browser"`
+	BrowserVersion string `json:"mobile_browser_version"`
 }
 
 type Device struct {
 	Id               string
 	UA               string
 	Parent           *Device
-	Children         *StringSet
+	Children         stringSet.Set
 	ActualDeviceRoot bool
-	Capabilities     map[string]interface{}
+	Capabilities     map[string]string
+	Properties	 *DeviceProperties
 }
 
 type Repository struct {
@@ -60,12 +52,16 @@ func (r *Repository) find(id string) *Device {
 	return r.devices[id]
 }
 
-func (r *Repository) register(id, ua string, actualDeviceRoot bool, capabilities map[string]interface{}, parent string) error {
+func (r *Repository) count() int {
+	return len(r.devices)
+}
+
+func (r *Repository) register(id, ua string, actualDeviceRoot bool, capabilities map[string]string, parent string) error {
 	dev := new(Device)
 	dev.Id = id
 	dev.UA = ua
-	dev.Children = NewStringSet()
-	dev.Capabilities = make(map[string]interface{})
+	dev.Children = stringSet.New()
+	dev.Capabilities = make(map[string]string)
 	if parent == "" {
 		dev.Capabilities = capabilities
 	} else {
@@ -84,25 +80,30 @@ func (r *Repository) register(id, ua string, actualDeviceRoot bool, capabilities
 			return errors.New("Unregistered Parent Device")
 		}
 	}
+	dev.parseDeviceProperties()
 	r.devices[dev.Id] = dev
 	chain.Filter(dev.UA, dev.Id)
 	return nil
 }
 
-var Repo = NewRepository()
-
-func RegisterDevice(id, ua string, actualDeviceRoot bool, capabilities map[string]interface{}, parent string) error {
-	return Repo.register(id, ua, actualDeviceRoot, capabilities, parent)
+func (r *Device) parseDeviceProperties() {
+	r.Properties = &DeviceProperties{
+		BrandName: r.Capabilities["brand_name"],
+		ModelName: r.Capabilities["model_name"],
+		MarketingName: r.Capabilities["marketing_name"],
+		PreferredMarkup: r.Capabilities["preferred_markup"],
+		ResolutionWidth: r.Capabilities["resolution_width"],
+		ResolutionHeight: r.Capabilities["resolution_height"],
+		DeviceOs: r.Capabilities["device_os"],
+		DeviceOsVersion: r.Capabilities["device_os_version"],
+		BrowserName: r.Capabilities["mobile_browser"],
+		BrowserVersion: r.Capabilities["mobile_browser_version"],
+	}
 }
 
-func Match(ua string) *Device {
+func (r *Repository) Match(ua string) *Device {
 	m := chain.Match(ua)
-	//fmt.Println(m)
-	return Repo.find(m)
-}
-
-func Find(id string) *Device {
-	return Repo.find(id)
+	return r.find(m)
 }
 
 func init() {

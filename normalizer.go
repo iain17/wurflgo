@@ -1,6 +1,5 @@
 package wurflgo
 
-
 type Normalizer interface{
 	Normalize(string) string
 }
